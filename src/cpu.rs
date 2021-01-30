@@ -36,7 +36,7 @@ impl Cpu {
         println!("nnn={:?}, nn={:?}, n={:?} x={}, y={}", nnn, nn, n, x, y);
 
         if self.prev_pc == self.pc{
-            panic!("pc = prev pc")
+            panic!("You need to change the Program Counter")
         }
         self.prev_pc = self.pc;
 
@@ -47,7 +47,7 @@ impl Cpu {
             0x6 => {
                 // vx -- nn
                 self.write_reg_vx(x, nn);
-                self.pc +2;
+                self.pc +=2;
             }
 
             _ => panic!("Unrecognized instruction {:#X}:{:#X}", self.pc, instruction),
