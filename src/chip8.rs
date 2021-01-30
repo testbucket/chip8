@@ -1,5 +1,6 @@
 use crate::ram::Ram;
 use crate::cpu::Cpu;
+use crate::cpu;
 
 pub(crate) struct Chip8 {
     ram: Ram,
@@ -14,7 +15,6 @@ impl Chip8 {
         }
     }
     pub fn load_rom(&mut self, data: &Vec<u8>) {
-        print!("loading rom");
         for i in 0..data.len() {
 
 
@@ -23,6 +23,7 @@ impl Chip8 {
     }
 
     pub fn run_instruction(& mut self){
-        self.cpu.run_instruction (&mut self.ram)
+        self.cpu.run_instruction (&mut self.ram);
+        println!("Cpu state: {:?}", self.cpu);
     }
 }

@@ -2,8 +2,8 @@ pub(crate) struct Ram {
     mem: [u8; 4096]
 }
 
-impl Ram{
-    pub fn new()-> Ram{
+impl Ram {
+    pub fn new() -> Ram {
         let mut ram = Ram { mem: [0; 4096] };
 
         //Initialize memory with the predefined sprites from 0, 1, 2 ... F
@@ -36,11 +36,10 @@ impl Ram{
 
         ram
     }
-    pub fn write_byte(&mut self, address: u16, value: u8){
-        println!("address {0}, data {1}", address, value);
+    pub fn write_byte(&mut self, address: u16, value: u8) {
         self.mem[address as usize] = value
     }
-    pub fn read_byte(&mut self, address: u16, value: u8){
-
+    pub fn read_byte(&mut self, address: u16) -> u8{
+        self.mem[address as usize]
     }
 }
