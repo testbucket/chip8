@@ -30,8 +30,15 @@ impl Bus {
         self.display.debug_draw_byte(byte, x, y)
     }
 
-    pub fn key_pressed(&self, key_code: u8) -> bool {
+    pub fn is_key_pressed(&self, key_code: u8) -> bool {
         self.keyboard.key_pressed(key_code)
+    }
+    pub fn present_screen(&self) {
+        self.display.present_screen();
+    }
+
+    pub fn clear_screen(&mut self) {
+        self.display.clear_screen();
     }
 }
 

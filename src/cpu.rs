@@ -29,8 +29,13 @@ impl Cpu {
         let hi = bus.ram_read_byte(self.pc) as u16;
         let lo = bus.ram_read_byte(self.pc + 1) as u16;
         let instruction: u16 = (hi << 8) | lo;
-        println!("** instruction read {:#x}: hi:{:#x}, lo:{:#x}", instruction, hi, lo);
-
+        println!(
+            "Instruction read {:#X}:{:#X}: hi{:#X} lo:{:#X} ",
+            self.pc,
+            instruction,
+            hi,
+            lo
+        );
 
         let nnn = instruction & 0x0FFF;
         let nn = (instruction & 0x0FF) as u8;
@@ -45,6 +50,19 @@ impl Cpu {
         self.prev_pc = self.pc;
 
         match (instruction & 0xF000) >> 12 {
+            0x0 => {
+                match nn {
+                    0xE0 => {
+                        bus.clear_screen();
+                        self.pc += 2;
+                    }
+                    0xEE => {
+                        // return from sub routine
+                        self.pc = self.ret_stack.pop().unwrap();
+                    }
+                    _ => panic!("Unrecognized instruction {:#X}:{:#X}", self.pc, instruction)
+                }
+            }
             0x1 => {
                 self.pc = nnn;
             }
@@ -75,15 +93,59 @@ impl Cpu {
             }
 
             0x8 => {
+                let vy = self.read_reg_vx(y);
+                let vx = self.read_reg_vx(x);
+
                 match n {
                     0 => {
-                        let vy = self.read_reg_vx(y);
                         self.write_reg_vx(x, vy);
                     }
 
+                    2 => {
+                        self.write_reg_vx(x, vx & vy);
+                    }
+
+                    3 => {
+                        self.write_reg_vx(x, vx ^ vy);
+                    }
+                    4 => {
+                        let sum: u16 = vx as u16 + vy as u16;
+                        self.write_reg_vx(x, sum as u8);
+                        if sum > 0xFF {
+                            self.write_reg_vx(0xF, 1)
+                        }
+                    }
+                    5 => {
+                        let diff: i8 = vx as i8 - vy as i8;
+                        self.write_reg_vx(x, diff as u8);
+                        if diff < 0 {
+                            self.write_reg_vx(0xF, 1);
+                        } else {
+                            self.write_reg_vx(0xF, 0);
+                        }
+                    }
+                    0x6 => {
+                        // Vx=Vx>>1
+                        self.write_reg_vx(0xF, vx & 0x1);
+                        self.write_reg_vx(x, vx >> 1);
+                    }
+                    0x7 => {
+                        let diff: i8 = vy as i8 - vx as i8;
+                        self.write_reg_vx(x, diff as u8);
+                        if diff < 0 {
+                            self.write_reg_vx(0xF, 1);
+                        } else {
+                            self.write_reg_vx(0xF, 0);
+                        }
+                    }
+                    0xE => {
+                        // VF is the most significant bit value.
+                        // SHR Vx
+                        self.write_reg_vx(0xF, (vx & 0x80) >> 7);
+                        self.write_reg_vx(x, vx << 1);
+                    }
                     _ => panic!("Unrecognized instruction {:#X}:{:#X}", self.pc, instruction)
                 }
-
                 self.pc += 2;
             }
             0xA => {
@@ -98,15 +160,29 @@ impl Cpu {
             0xE => {
                 match nn {
                     0xA1 => {
+                        // if(key()!=Vx) then skip the next instruction
                         let key = self.read_reg_vx(x);
-                        if bus.key_pressed(key) {
-                            self.pc += 2;
-                        } else {
+                        if !bus.is_key_pressed(key) {
                             self.pc += 4;
+                        } else {
+                            self.pc += 2;
                         }
                     }
-                    _ => panic!("Unrecognized instruction {:#X}:{:#X}", self.pc, instruction)
-                }
+                    0x9E => {
+                        // if(key()==Vx) then skip the next instruction
+                        let key = self.read_reg_vx(x);
+                        if bus.is_key_pressed(key) {
+                            self.pc += 4;
+                        } else {
+                            self.pc += 2;
+                        }
+                    }
+                    _ => panic!(
+                        "Unrecognized 0xEX** instruction {:#X}:{:#X}",
+                        self.pc,
+                        instruction
+                    ),
+                };
             }
             0xF => {
                 // I +=Vx
@@ -129,6 +205,7 @@ impl Cpu {
 
 
     fn debug_draw_sprite(&mut self, bus: &mut Bus, x: u8, y: u8, height: u8) {
+        println!("Drawing sprite at ({},{})", x, y);
         let mut should_set_vf = false;
         for y in 0..height {
             let b = bus.ram_read_byte(self.i + y as u16);
@@ -141,6 +218,7 @@ impl Cpu {
         } else {
             self.write_reg_vx(0xF, 0);
         }
+        bus.present_screen();
     }
 }
 
