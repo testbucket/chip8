@@ -26,7 +26,7 @@ impl Bus {
     }
 
 
-    pub fn debug_draw_byte(&mut self, byte: u8, x: u8, y: u8) {
+    pub fn debug_draw_byte(&mut self, byte: u8, x: u8, y: u8) -> bool{
         self.display.debug_draw_byte(byte, x, y)
     }
 

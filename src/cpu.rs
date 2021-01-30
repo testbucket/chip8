@@ -99,11 +99,14 @@ impl Cpu {
                 match nn {
                     0xA1 => {
                         let key = self.read_reg_vx(x);
-
+                        if bus.key_pressed(key) {
+                            self.pc += 2;
+                        } else {
+                            self.pc += 4;
+                        }
                     }
                     _ => panic!("Unrecognized instruction {:#X}:{:#X}", self.pc, instruction)
                 }
-                // self.pc += 2;
             }
             0xF => {
                 // I +=Vx
@@ -113,8 +116,6 @@ impl Cpu {
             }
             _ => panic!("Unrecognized instruction {:#X}:{:#X}", self.pc, instruction),
         }
-
-
     }
 
 
@@ -127,16 +128,20 @@ impl Cpu {
     }
 
 
-    fn debug_draw_sprite(&self, bus: &mut Bus, x: u8, y: u8, height: u8) {
-        println!("Drawing sprite at ({},{})", x, y);
+    fn debug_draw_sprite(&mut self, bus: &mut Bus, x: u8, y: u8, height: u8) {
+        let mut should_set_vf = false;
         for y in 0..height {
             let b = bus.ram_read_byte(self.i + y as u16);
-            bus.debug_draw_byte(b, x, y);
+            if bus.debug_draw_byte(b, x, y) {
+                should_set_vf = true;
+            }
         }
-        print!("\n");
+        if should_set_vf {
+            self.write_reg_vx(0xF, 1);
+        } else {
+            self.write_reg_vx(0xF, 0);
+        }
     }
-
-
 }
 
 impl fmt::Debug for Cpu {
