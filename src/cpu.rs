@@ -35,7 +35,7 @@ impl Cpu {
         let y = ((instruction & 0x00F0) >> 4) as u8;
         println!("nnn={:?}, nn={:?}, n={:?} x={}, y={}", nnn, nn, n, x, y);
 
-        if self.prev_pc == self.pc{
+        if self.prev_pc == self.pc {
             panic!("You need to change the Program Counter")
         }
         self.prev_pc = self.pc;
@@ -47,12 +47,57 @@ impl Cpu {
             0x6 => {
                 // vx -- nn
                 self.write_reg_vx(x, nn);
-                self.pc +=2;
+                self.pc += 2;
             }
+            0x3 => {
+                // skips the next instruction is vx==nn
+                let vx = self.read_reg_vx(x);
+                if vx == nn {
+                    self.pc += 4;
+                } else {
+                    self.pc += 2;
+                }
+            }
+            0x7 => {
+                let vx = self.read_reg_vx(x);
+                self.write_reg_vx(x, vx.wrapping_add(nn));
 
+                self.pc += 2;
+            }
+            0xA => {
+                // I -> nnn
+                self.i = nnn;
+                self.pc += 2;
+            }
+            0xD => {
+                self.debug_draw_sprite(ram, x, y, n);
+                self.pc += 2;
+            }
+            0xF => {
+                // I +=Vx
+                let vx = self.read_reg_vx(x);
+                self.i += vx as u16;
+                self.pc += 2;
+            }
             _ => panic!("Unrecognized instruction {:#X}:{:#X}", self.pc, instruction),
         }
+    }
 
+    fn debug_draw_sprite(&self, ram: &mut Ram, x: u8, y: u8, height: u8) {
+        println!("Drawing sprite at ({},{})", x, y);
+        for y in 0..height {
+            let mut b = ram.read_byte(self.i + y as u16);
+            for _ in 0..8 {
+                match (b & 0b1000_0000) >> 7 {
+                    0 => print!("_"),
+                    1 => print!("#"),
+                    _ => unreachable!()
+                }
+                b = b << 1;
+            }
+            print!("\n");
+        }
+        print!("\n");
     }
 
     pub fn write_reg_vx(&mut self, index: u8, value: u8) {
