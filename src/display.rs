@@ -32,6 +32,7 @@ impl Display {
             coord_x += 1;
             b = b << 1;
         }
+        self.present_screen();
         flipped
     }
 

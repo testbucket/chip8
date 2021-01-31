@@ -185,10 +185,71 @@ impl Cpu {
                 };
             }
             0xF => {
-                // I +=Vx
-                let vx = self.read_reg_vx(x);
-                self.i += vx as u16;
-                self.pc += 2;
+                match nn {
+                    0x07 => {
+                        // self.write_reg_vx(x, bus.get_delay_timer());
+                        self.pc += 2;
+                    }
+                    0x0A => {
+                        self.pc += 2;
+
+                        // if let Some(val) = bus.get_key_pressed() {
+                        //     self.write_reg_vx(x, val);
+                        //     self.pc += 2;
+                        // }
+                    }
+                    0x15 => {
+                        self.pc += 2;
+
+                        // bus.set_delay_timer(self.read_reg_vx(x));
+                        // self.pc += 2;
+                    }
+                    0x18 => {
+                        // TODO Sound timer
+                        self.pc += 2;
+                    }
+                    0x1E => {
+                        //I +=Vx
+                        let vx = self.read_reg_vx(x);
+                        self.i += vx as u16;
+                        self.pc += 2;
+                    }
+                    0x29 => {
+                        //i == sprite address for character in Vx
+                        //Multiply by 5 because each sprite has 5 lines, each line
+                        //is 1 byte.
+                        self.i = self.read_reg_vx(x) as u16 * 5;
+                        self.pc += 2;
+                    }
+                    0x33 => {
+                        let vx = self.read_reg_vx(x);
+                        bus.ram_write_byte(self.i, vx / 100);
+                        bus.ram_write_byte(self.i + 1, (vx % 100) / 10);
+                        bus.ram_write_byte(self.i + 2, vx % 10);
+                        self.pc += 2;
+                    }
+                    0x55 => {
+                        for index in 0..x + 1 {
+                            let value = self.read_reg_vx(index);
+                            bus.ram_write_byte(self.i + index as u16, value);
+                        }
+                        self.i += x as u16 + 1;
+                        self.pc += 2;
+                    }
+                    0x65 => {
+                        for index in 0..x + 1 {
+                            let value = bus.ram_read_byte(self.i + index as u16);
+                            self.write_reg_vx(index, value);
+                        }
+                        self.i += x as u16 + 1;
+                        self.pc += 2;
+                    }
+                    _ => panic!(
+                        "Unrecognized 0xF instruction {:#X}:{:#X}",
+                        self.pc,
+                        instruction
+                    ),
+                }
             }
             _ => panic!("Unrecognized instruction {:#X}:{:#X}", self.pc, instruction),
         }
